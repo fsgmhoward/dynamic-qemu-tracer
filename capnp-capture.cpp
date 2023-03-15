@@ -1,10 +1,12 @@
 #include "schema.capnp.h"
 #include <capnp/message.h>
-#include <capnp/serialize-packed.h>
+#include <capnp/serialize.h>
 #include <bits/stdc++.h>
+#include <fcntl.h>
 
 extern "C" {
     #include <qemu-plugin.h>
+    #include "elf-parser.h"
 }
 
 using namespace std;
@@ -141,7 +143,57 @@ static void vcpu_tb_trans(qemu_plugin_id_t id, struct qemu_plugin_tb *tb)
 
 static void plugin_exit(qemu_plugin_id_t id, void *p)
 {
-    FILE * fd = fopen("execlog.txt", "w");
+    // Resolve section offset from ELF header
+    // Ref: https://github.com/TheCodeArtist/elf-parser/blob/master/elf-parser-main.c
+    int elffd = open(target_filename->c_str(), O_RDONLY|O_SYNC);
+    Elf32_Ehdr eh;
+    read_elf_header(elffd, &eh);
+    
+    // base address where file offsets will add up to it
+    int64_t base_address = 0;
+    
+    if(is64Bit(eh)){
+		Elf64_Ehdr eh64;	/* elf-header is fixed size */
+		Elf64_Shdr* sh_tbl;	/* section-header table is variable size */
+
+		read_elf_header64(elffd, &eh64);
+
+		/* Section header table :  */
+		sh_tbl = (Elf64_Shdr*) malloc(eh64.e_shentsize * eh64.e_shnum);
+		read_section_header_table64(elffd, eh64, sh_tbl);
+		
+		for (int i = 0; i < eh64.e_shnum; ++i) {
+		    int flag = sh_tbl[i].sh_flags;
+		    // 0x2: SHF_ALLOC
+		    // 0x4: SHF_EXECINSTR
+		    // See: https://docs.oracle.com/cd/E19120-01/open.solaris/819-0690/6n33n7fcj/index.html
+		    if ((flag & 0x2) && (flag & 0x4)) {
+		        base_address = sh_tbl[i].sh_addr - sh_tbl[i].sh_offset;
+		        break;
+		    }
+		}
+		free(sh_tbl);
+	} else{
+		Elf32_Shdr* sh_tbl = (Elf32_Shdr*) malloc(eh.e_shentsize * eh.e_shnum);
+		read_section_header_table(elffd, eh, sh_tbl);
+		
+		for (int i = 0; i < eh.e_shnum; ++i) {
+		    int flag = sh_tbl[i].sh_flags;
+		    // 0x2: SHF_ALLOC
+		    // 0x4: SHF_EXECINSTR
+		    // See: https://docs.oracle.com/cd/E19120-01/open.solaris/819-0690/6n33n7fcj/index.html
+		    if ((flag & 0x2) && (flag & 0x4)) {
+		        base_address = sh_tbl[i].sh_addr - sh_tbl[i].sh_offset;
+		        break;
+		    }
+		}
+		free(sh_tbl);
+	}
+	
+	close(elffd);
+
+    // Create output file, with 644 permission
+    int fd = open("execlog_capnp.out", O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     // char buf[100];
     // fprintf(fd, "\n ========= BEGIN MAPPING ========= \n");
     // sprintf(buf, "/proc/%d/maps", getpid());
@@ -158,10 +210,28 @@ static void plugin_exit(qemu_plugin_id_t id, void *p)
         insn_table[0].insert(insn_table[i].begin(), insn_table[i].end());
     }
     
+    // Write to capnp binary output
+    ::capnp::MallocMessageBuilder message;
+    AnalysisRst::Builder analysis_rst = message.initRoot<AnalysisRst>();
+    
+    InstOffset::Builder inst_offsets = analysis_rst.initInstOffsets();
+    ::capnp::List<int64_t>::Builder offsets = inst_offsets.initOffset(insn_table[0].size());
+    
+    size_t i = 0;
     for (const insn_t & insn : insn_table[0]) {
-        fprintf(fd, "%lu %u\n", insn.first, insn.second);
+        offsets.set(i, insn.first + base_address);
+        ++i;
     }
-    fclose(fd);
+    
+    writeMessageToFd(fd, message);
+    
+    close(fd);
+    
+    // cerr << "Executable Memory Regions" << endl;
+    // for (const mapping_t & mapping : mapping_table)
+    // {
+    //     cerr << get<0>(mapping) << " -> " << get<1>(mapping) << " : " << *get<3>(mapping) << "@" << get<2>(mapping) << endl;
+    // }
 }
 
 /**
@@ -193,16 +263,4 @@ QEMU_PLUGIN_EXPORT int qemu_plugin_install(qemu_plugin_id_t id,
     qemu_plugin_register_atexit_cb(id, plugin_exit, NULL);
 
     return 0;
-}
-
-static void flush_trace()
-{
-    /*
-     * Initialize output, serialized with capnproto
-     */
-    FILE* fd = fopen("trace.cap", "wb");
-    
-    ::capnp::MallocMessageBuilder message;
-    auto insn_table = message.initRoot<InstructionTable>();
-    auto instructions = insn_table.initInstructions(1);
 }

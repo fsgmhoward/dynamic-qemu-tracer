@@ -1,10 +1,14 @@
-@0x85156056ff3cc724;
+@0xea5a513cb1666fde;
 
-struct Instruction {
-	begin @0 : UInt64;
-	length @1 : UInt8;
+struct AnalysisRst {
+  instOffsets @0 : InstOffset;
+  funcStarts @1 : FuncStart;
 }
 
-struct InstructionTable {
-	instructions @0 : List(Instruction);
+struct InstOffset {
+  offset @0 : List(Int64);
+}
+
+struct FuncStart {
+  func @0 : List(Int64);
 }

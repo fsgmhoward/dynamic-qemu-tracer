@@ -14,37 +14,53 @@
 namespace capnp {
 namespace schemas {
 
-CAPNP_DECLARE_SCHEMA(c6d1f6ea116ddc0d);
-CAPNP_DECLARE_SCHEMA(91179335117bb024);
+CAPNP_DECLARE_SCHEMA(9f23763eb109ffdc);
+CAPNP_DECLARE_SCHEMA(c72aca35097eecb1);
+CAPNP_DECLARE_SCHEMA(bba3380e8da6875b);
 
 }  // namespace schemas
 }  // namespace capnp
 
 
-struct Instruction {
-  Instruction() = delete;
+struct AnalysisRst {
+  AnalysisRst() = delete;
 
   class Reader;
   class Builder;
   class Pipeline;
 
   struct _capnpPrivate {
-    CAPNP_DECLARE_STRUCT_HEADER(c6d1f6ea116ddc0d, 2, 0)
+    CAPNP_DECLARE_STRUCT_HEADER(9f23763eb109ffdc, 0, 2)
     #if !CAPNP_LITE
     static constexpr ::capnp::_::RawBrandedSchema const* brand() { return &schema->defaultBrand; }
     #endif  // !CAPNP_LITE
   };
 };
 
-struct InstructionTable {
-  InstructionTable() = delete;
+struct InstOffset {
+  InstOffset() = delete;
 
   class Reader;
   class Builder;
   class Pipeline;
 
   struct _capnpPrivate {
-    CAPNP_DECLARE_STRUCT_HEADER(91179335117bb024, 0, 1)
+    CAPNP_DECLARE_STRUCT_HEADER(c72aca35097eecb1, 0, 1)
+    #if !CAPNP_LITE
+    static constexpr ::capnp::_::RawBrandedSchema const* brand() { return &schema->defaultBrand; }
+    #endif  // !CAPNP_LITE
+  };
+};
+
+struct FuncStart {
+  FuncStart() = delete;
+
+  class Reader;
+  class Builder;
+  class Pipeline;
+
+  struct _capnpPrivate {
+    CAPNP_DECLARE_STRUCT_HEADER(bba3380e8da6875b, 0, 1)
     #if !CAPNP_LITE
     static constexpr ::capnp::_::RawBrandedSchema const* brand() { return &schema->defaultBrand; }
     #endif  // !CAPNP_LITE
@@ -53,9 +69,9 @@ struct InstructionTable {
 
 // =======================================================================================
 
-class Instruction::Reader {
+class AnalysisRst::Reader {
 public:
-  typedef Instruction Reads;
+  typedef AnalysisRst Reads;
 
   Reader() = default;
   inline explicit Reader(::capnp::_::StructReader base): _reader(base) {}
@@ -70,9 +86,11 @@ public:
   }
 #endif  // !CAPNP_LITE
 
-  inline  ::uint64_t getBegin() const;
+  inline bool hasInstOffsets() const;
+  inline  ::InstOffset::Reader getInstOffsets() const;
 
-  inline  ::uint8_t getLength() const;
+  inline bool hasFuncStarts() const;
+  inline  ::FuncStart::Reader getFuncStarts() const;
 
 private:
   ::capnp::_::StructReader _reader;
@@ -86,9 +104,9 @@ private:
   friend class ::capnp::Orphanage;
 };
 
-class Instruction::Builder {
+class AnalysisRst::Builder {
 public:
-  typedef Instruction Builds;
+  typedef AnalysisRst Builds;
 
   Builder() = delete;  // Deleted to discourage incorrect usage.
                        // You can explicitly initialize to nullptr instead.
@@ -102,11 +120,19 @@ public:
   inline ::kj::StringTree toString() const { return asReader().toString(); }
 #endif  // !CAPNP_LITE
 
-  inline  ::uint64_t getBegin();
-  inline void setBegin( ::uint64_t value);
+  inline bool hasInstOffsets();
+  inline  ::InstOffset::Builder getInstOffsets();
+  inline void setInstOffsets( ::InstOffset::Reader value);
+  inline  ::InstOffset::Builder initInstOffsets();
+  inline void adoptInstOffsets(::capnp::Orphan< ::InstOffset>&& value);
+  inline ::capnp::Orphan< ::InstOffset> disownInstOffsets();
 
-  inline  ::uint8_t getLength();
-  inline void setLength( ::uint8_t value);
+  inline bool hasFuncStarts();
+  inline  ::FuncStart::Builder getFuncStarts();
+  inline void setFuncStarts( ::FuncStart::Reader value);
+  inline  ::FuncStart::Builder initFuncStarts();
+  inline void adoptFuncStarts(::capnp::Orphan< ::FuncStart>&& value);
+  inline ::capnp::Orphan< ::FuncStart> disownFuncStarts();
 
 private:
   ::capnp::_::StructBuilder _builder;
@@ -118,14 +144,16 @@ private:
 };
 
 #if !CAPNP_LITE
-class Instruction::Pipeline {
+class AnalysisRst::Pipeline {
 public:
-  typedef Instruction Pipelines;
+  typedef AnalysisRst Pipelines;
 
   inline Pipeline(decltype(nullptr)): _typeless(nullptr) {}
   inline explicit Pipeline(::capnp::AnyPointer::Pipeline&& typeless)
       : _typeless(kj::mv(typeless)) {}
 
+  inline  ::InstOffset::Pipeline getInstOffsets();
+  inline  ::FuncStart::Pipeline getFuncStarts();
 private:
   ::capnp::AnyPointer::Pipeline _typeless;
   friend class ::capnp::PipelineHook;
@@ -134,9 +162,9 @@ private:
 };
 #endif  // !CAPNP_LITE
 
-class InstructionTable::Reader {
+class InstOffset::Reader {
 public:
-  typedef InstructionTable Reads;
+  typedef InstOffset Reads;
 
   Reader() = default;
   inline explicit Reader(::capnp::_::StructReader base): _reader(base) {}
@@ -151,8 +179,8 @@ public:
   }
 #endif  // !CAPNP_LITE
 
-  inline bool hasInstructions() const;
-  inline  ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>::Reader getInstructions() const;
+  inline bool hasOffset() const;
+  inline  ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>::Reader getOffset() const;
 
 private:
   ::capnp::_::StructReader _reader;
@@ -166,9 +194,9 @@ private:
   friend class ::capnp::Orphanage;
 };
 
-class InstructionTable::Builder {
+class InstOffset::Builder {
 public:
-  typedef InstructionTable Builds;
+  typedef InstOffset Builds;
 
   Builder() = delete;  // Deleted to discourage incorrect usage.
                        // You can explicitly initialize to nullptr instead.
@@ -182,12 +210,13 @@ public:
   inline ::kj::StringTree toString() const { return asReader().toString(); }
 #endif  // !CAPNP_LITE
 
-  inline bool hasInstructions();
-  inline  ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>::Builder getInstructions();
-  inline void setInstructions( ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>::Reader value);
-  inline  ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>::Builder initInstructions(unsigned int size);
-  inline void adoptInstructions(::capnp::Orphan< ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>>&& value);
-  inline ::capnp::Orphan< ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>> disownInstructions();
+  inline bool hasOffset();
+  inline  ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>::Builder getOffset();
+  inline void setOffset( ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>::Reader value);
+  inline void setOffset(::kj::ArrayPtr<const  ::int64_t> value);
+  inline  ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>::Builder initOffset(unsigned int size);
+  inline void adoptOffset(::capnp::Orphan< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>>&& value);
+  inline ::capnp::Orphan< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>> disownOffset();
 
 private:
   ::capnp::_::StructBuilder _builder;
@@ -199,9 +228,91 @@ private:
 };
 
 #if !CAPNP_LITE
-class InstructionTable::Pipeline {
+class InstOffset::Pipeline {
 public:
-  typedef InstructionTable Pipelines;
+  typedef InstOffset Pipelines;
+
+  inline Pipeline(decltype(nullptr)): _typeless(nullptr) {}
+  inline explicit Pipeline(::capnp::AnyPointer::Pipeline&& typeless)
+      : _typeless(kj::mv(typeless)) {}
+
+private:
+  ::capnp::AnyPointer::Pipeline _typeless;
+  friend class ::capnp::PipelineHook;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+};
+#endif  // !CAPNP_LITE
+
+class FuncStart::Reader {
+public:
+  typedef FuncStart Reads;
+
+  Reader() = default;
+  inline explicit Reader(::capnp::_::StructReader base): _reader(base) {}
+
+  inline ::capnp::MessageSize totalSize() const {
+    return _reader.totalSize().asPublic();
+  }
+
+#if !CAPNP_LITE
+  inline ::kj::StringTree toString() const {
+    return ::capnp::_::structString(_reader, *_capnpPrivate::brand());
+  }
+#endif  // !CAPNP_LITE
+
+  inline bool hasFunc() const;
+  inline  ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>::Reader getFunc() const;
+
+private:
+  ::capnp::_::StructReader _reader;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::_::PointerHelpers;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::List;
+  friend class ::capnp::MessageBuilder;
+  friend class ::capnp::Orphanage;
+};
+
+class FuncStart::Builder {
+public:
+  typedef FuncStart Builds;
+
+  Builder() = delete;  // Deleted to discourage incorrect usage.
+                       // You can explicitly initialize to nullptr instead.
+  inline Builder(decltype(nullptr)) {}
+  inline explicit Builder(::capnp::_::StructBuilder base): _builder(base) {}
+  inline operator Reader() const { return Reader(_builder.asReader()); }
+  inline Reader asReader() const { return *this; }
+
+  inline ::capnp::MessageSize totalSize() const { return asReader().totalSize(); }
+#if !CAPNP_LITE
+  inline ::kj::StringTree toString() const { return asReader().toString(); }
+#endif  // !CAPNP_LITE
+
+  inline bool hasFunc();
+  inline  ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>::Builder getFunc();
+  inline void setFunc( ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>::Reader value);
+  inline void setFunc(::kj::ArrayPtr<const  ::int64_t> value);
+  inline  ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>::Builder initFunc(unsigned int size);
+  inline void adoptFunc(::capnp::Orphan< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>>&& value);
+  inline ::capnp::Orphan< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>> disownFunc();
+
+private:
+  ::capnp::_::StructBuilder _builder;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+  friend class ::capnp::Orphanage;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::_::PointerHelpers;
+};
+
+#if !CAPNP_LITE
+class FuncStart::Pipeline {
+public:
+  typedef FuncStart Pipelines;
 
   inline Pipeline(decltype(nullptr)): _typeless(nullptr) {}
   inline explicit Pipeline(::capnp::AnyPointer::Pipeline&& typeless)
@@ -217,65 +328,157 @@ private:
 
 // =======================================================================================
 
-inline  ::uint64_t Instruction::Reader::getBegin() const {
-  return _reader.getDataField< ::uint64_t>(
-      ::capnp::bounded<0>() * ::capnp::ELEMENTS);
-}
-
-inline  ::uint64_t Instruction::Builder::getBegin() {
-  return _builder.getDataField< ::uint64_t>(
-      ::capnp::bounded<0>() * ::capnp::ELEMENTS);
-}
-inline void Instruction::Builder::setBegin( ::uint64_t value) {
-  _builder.setDataField< ::uint64_t>(
-      ::capnp::bounded<0>() * ::capnp::ELEMENTS, value);
-}
-
-inline  ::uint8_t Instruction::Reader::getLength() const {
-  return _reader.getDataField< ::uint8_t>(
-      ::capnp::bounded<8>() * ::capnp::ELEMENTS);
-}
-
-inline  ::uint8_t Instruction::Builder::getLength() {
-  return _builder.getDataField< ::uint8_t>(
-      ::capnp::bounded<8>() * ::capnp::ELEMENTS);
-}
-inline void Instruction::Builder::setLength( ::uint8_t value) {
-  _builder.setDataField< ::uint8_t>(
-      ::capnp::bounded<8>() * ::capnp::ELEMENTS, value);
-}
-
-inline bool InstructionTable::Reader::hasInstructions() const {
+inline bool AnalysisRst::Reader::hasInstOffsets() const {
   return !_reader.getPointerField(
       ::capnp::bounded<0>() * ::capnp::POINTERS).isNull();
 }
-inline bool InstructionTable::Builder::hasInstructions() {
+inline bool AnalysisRst::Builder::hasInstOffsets() {
   return !_builder.getPointerField(
       ::capnp::bounded<0>() * ::capnp::POINTERS).isNull();
 }
-inline  ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>::Reader InstructionTable::Reader::getInstructions() const {
-  return ::capnp::_::PointerHelpers< ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>>::get(_reader.getPointerField(
+inline  ::InstOffset::Reader AnalysisRst::Reader::getInstOffsets() const {
+  return ::capnp::_::PointerHelpers< ::InstOffset>::get(_reader.getPointerField(
       ::capnp::bounded<0>() * ::capnp::POINTERS));
 }
-inline  ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>::Builder InstructionTable::Builder::getInstructions() {
-  return ::capnp::_::PointerHelpers< ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>>::get(_builder.getPointerField(
+inline  ::InstOffset::Builder AnalysisRst::Builder::getInstOffsets() {
+  return ::capnp::_::PointerHelpers< ::InstOffset>::get(_builder.getPointerField(
       ::capnp::bounded<0>() * ::capnp::POINTERS));
 }
-inline void InstructionTable::Builder::setInstructions( ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>::Reader value) {
-  ::capnp::_::PointerHelpers< ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>>::set(_builder.getPointerField(
+#if !CAPNP_LITE
+inline  ::InstOffset::Pipeline AnalysisRst::Pipeline::getInstOffsets() {
+  return  ::InstOffset::Pipeline(_typeless.getPointerField(0));
+}
+#endif  // !CAPNP_LITE
+inline void AnalysisRst::Builder::setInstOffsets( ::InstOffset::Reader value) {
+  ::capnp::_::PointerHelpers< ::InstOffset>::set(_builder.getPointerField(
       ::capnp::bounded<0>() * ::capnp::POINTERS), value);
 }
-inline  ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>::Builder InstructionTable::Builder::initInstructions(unsigned int size) {
-  return ::capnp::_::PointerHelpers< ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>>::init(_builder.getPointerField(
-      ::capnp::bounded<0>() * ::capnp::POINTERS), size);
+inline  ::InstOffset::Builder AnalysisRst::Builder::initInstOffsets() {
+  return ::capnp::_::PointerHelpers< ::InstOffset>::init(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS));
 }
-inline void InstructionTable::Builder::adoptInstructions(
-    ::capnp::Orphan< ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>>&& value) {
-  ::capnp::_::PointerHelpers< ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>>::adopt(_builder.getPointerField(
+inline void AnalysisRst::Builder::adoptInstOffsets(
+    ::capnp::Orphan< ::InstOffset>&& value) {
+  ::capnp::_::PointerHelpers< ::InstOffset>::adopt(_builder.getPointerField(
       ::capnp::bounded<0>() * ::capnp::POINTERS), kj::mv(value));
 }
-inline ::capnp::Orphan< ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>> InstructionTable::Builder::disownInstructions() {
-  return ::capnp::_::PointerHelpers< ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>>::disown(_builder.getPointerField(
+inline ::capnp::Orphan< ::InstOffset> AnalysisRst::Builder::disownInstOffsets() {
+  return ::capnp::_::PointerHelpers< ::InstOffset>::disown(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS));
+}
+
+inline bool AnalysisRst::Reader::hasFuncStarts() const {
+  return !_reader.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS).isNull();
+}
+inline bool AnalysisRst::Builder::hasFuncStarts() {
+  return !_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS).isNull();
+}
+inline  ::FuncStart::Reader AnalysisRst::Reader::getFuncStarts() const {
+  return ::capnp::_::PointerHelpers< ::FuncStart>::get(_reader.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS));
+}
+inline  ::FuncStart::Builder AnalysisRst::Builder::getFuncStarts() {
+  return ::capnp::_::PointerHelpers< ::FuncStart>::get(_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS));
+}
+#if !CAPNP_LITE
+inline  ::FuncStart::Pipeline AnalysisRst::Pipeline::getFuncStarts() {
+  return  ::FuncStart::Pipeline(_typeless.getPointerField(1));
+}
+#endif  // !CAPNP_LITE
+inline void AnalysisRst::Builder::setFuncStarts( ::FuncStart::Reader value) {
+  ::capnp::_::PointerHelpers< ::FuncStart>::set(_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS), value);
+}
+inline  ::FuncStart::Builder AnalysisRst::Builder::initFuncStarts() {
+  return ::capnp::_::PointerHelpers< ::FuncStart>::init(_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS));
+}
+inline void AnalysisRst::Builder::adoptFuncStarts(
+    ::capnp::Orphan< ::FuncStart>&& value) {
+  ::capnp::_::PointerHelpers< ::FuncStart>::adopt(_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS), kj::mv(value));
+}
+inline ::capnp::Orphan< ::FuncStart> AnalysisRst::Builder::disownFuncStarts() {
+  return ::capnp::_::PointerHelpers< ::FuncStart>::disown(_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS));
+}
+
+inline bool InstOffset::Reader::hasOffset() const {
+  return !_reader.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS).isNull();
+}
+inline bool InstOffset::Builder::hasOffset() {
+  return !_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS).isNull();
+}
+inline  ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>::Reader InstOffset::Reader::getOffset() const {
+  return ::capnp::_::PointerHelpers< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>>::get(_reader.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS));
+}
+inline  ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>::Builder InstOffset::Builder::getOffset() {
+  return ::capnp::_::PointerHelpers< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>>::get(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS));
+}
+inline void InstOffset::Builder::setOffset( ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>::Reader value) {
+  ::capnp::_::PointerHelpers< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>>::set(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS), value);
+}
+inline void InstOffset::Builder::setOffset(::kj::ArrayPtr<const  ::int64_t> value) {
+  ::capnp::_::PointerHelpers< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>>::set(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS), value);
+}
+inline  ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>::Builder InstOffset::Builder::initOffset(unsigned int size) {
+  return ::capnp::_::PointerHelpers< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>>::init(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS), size);
+}
+inline void InstOffset::Builder::adoptOffset(
+    ::capnp::Orphan< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>>&& value) {
+  ::capnp::_::PointerHelpers< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>>::adopt(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS), kj::mv(value));
+}
+inline ::capnp::Orphan< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>> InstOffset::Builder::disownOffset() {
+  return ::capnp::_::PointerHelpers< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>>::disown(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS));
+}
+
+inline bool FuncStart::Reader::hasFunc() const {
+  return !_reader.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS).isNull();
+}
+inline bool FuncStart::Builder::hasFunc() {
+  return !_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS).isNull();
+}
+inline  ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>::Reader FuncStart::Reader::getFunc() const {
+  return ::capnp::_::PointerHelpers< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>>::get(_reader.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS));
+}
+inline  ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>::Builder FuncStart::Builder::getFunc() {
+  return ::capnp::_::PointerHelpers< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>>::get(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS));
+}
+inline void FuncStart::Builder::setFunc( ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>::Reader value) {
+  ::capnp::_::PointerHelpers< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>>::set(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS), value);
+}
+inline void FuncStart::Builder::setFunc(::kj::ArrayPtr<const  ::int64_t> value) {
+  ::capnp::_::PointerHelpers< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>>::set(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS), value);
+}
+inline  ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>::Builder FuncStart::Builder::initFunc(unsigned int size) {
+  return ::capnp::_::PointerHelpers< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>>::init(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS), size);
+}
+inline void FuncStart::Builder::adoptFunc(
+    ::capnp::Orphan< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>>&& value) {
+  ::capnp::_::PointerHelpers< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>>::adopt(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS), kj::mv(value));
+}
+inline ::capnp::Orphan< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>> FuncStart::Builder::disownFunc() {
+  return ::capnp::_::PointerHelpers< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>>::disown(_builder.getPointerField(
       ::capnp::bounded<0>() * ::capnp::POINTERS));
 }
 

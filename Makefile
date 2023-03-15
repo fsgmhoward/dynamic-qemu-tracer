@@ -12,15 +12,7 @@ include $(BUILD_DIR)/config-host.mak
 
 VPATH += $(SRC_PATH)/contrib/plugins
 
-NAMES :=
-NAMES += execlog
-NAMES += hotblocks
-NAMES += hotpages
-NAMES += howvec
-NAMES += lockstep
-NAMES += hwprofile
-NAMES += cache
-NAMES += drcov
+NAMES := capnp-capture
 
 SONAMES := $(addsuffix .so,$(addprefix lib,$(NAMES)))
 
@@ -38,8 +30,11 @@ schema.capnp.o: schema.capnp.c++
 
 %.o: %.cpp
 	$(CXX) $(CFLAGS) --std=c++17 -c -O0 -g -o $@ $<
+	
+%.o: %.c
+	$(CC) $(CFLAGS) -c -O0 -g -o $@ $<
 
-lib%.so: %.o schema.capnp.o
+lib%.so: %.o schema.capnp.o elf-parser.o
 	$(CXX) -shared -Wl,-soname,$@ -o $@ $^ $(LDLIBS) -lcapnp -lkj
 
 clean:
