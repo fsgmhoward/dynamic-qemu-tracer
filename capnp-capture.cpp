@@ -3,6 +3,7 @@
 #include <capnp/serialize.h>
 #include <bits/stdc++.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 extern "C" {
     #include <qemu-plugin.h>
@@ -31,7 +32,33 @@ unordered_set<string> filename_table;
 typedef tuple<uint64_t, uint64_t, uint64_t, const string *> mapping_t;
 set<mapping_t> mapping_table;
 
+// Pointers to be freed
+vector<tuple<const string *, uint64_t, uint8_t>*> free_table;
+
 const string * target_filename = nullptr;
+int output_version = 0;
+ofstream logger;
+
+// Ref: https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exists-using-standard-c-c11-14-17-c
+inline bool file_exists(const string& name) {
+    struct stat buffer;   
+    return (stat (name.c_str(), &buffer) == 0); 
+}
+
+// Ref: https://stackoverflow.com/questions/478898/how-do-i-execute-a-command-and-get-the-output-of-the-command-within-c-using-po
+string exec(const char* cmd) {
+    array<char, 128> buffer;
+    string result;
+    unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+    if (!pipe) {
+        throw runtime_error("popen() failed!");
+    }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+    return result;
+}
+
 
 // We *NOT ONLY* care about segments with x permission
 // Note that original file is mapped with non-executable permission
@@ -132,16 +159,16 @@ static void vcpu_tb_trans(qemu_plugin_id_t id, struct qemu_plugin_tb *tb)
             
             // filename, offset, length
             insn_data = new tuple<const string *, uint64_t, uint8_t>(filename, offset, length);
+            free_table.push_back(insn_data);
         }
-        
-        // TODO: Free contents
         
         /* Register callback on instruction */
         qemu_plugin_register_vcpu_insn_exec_cb(insn, vcpu_insn_exec, QEMU_PLUGIN_CB_NO_REGS, insn_data);
     }
 }
 
-static void plugin_exit(qemu_plugin_id_t id, void *p)
+// This function parses target's ELF header and find out the image loading base address
+static int64_t parse_base_address()
 {
     // Resolve section offset from ELF header
     // Ref: https://github.com/TheCodeArtist/elf-parser/blob/master/elf-parser-main.c
@@ -191,25 +218,16 @@ static void plugin_exit(qemu_plugin_id_t id, void *p)
 	}
 	
 	close(elffd);
+	
+	logger << "Base Address parsed @0x" << hex << base_address << dec << endl;
+	
+	return base_address;
+}
 
+static void output_version_0(const char * output_file, uint64_t base_address)
+{
     // Create output file, with 644 permission
-    int fd = open("execlog_capnp.out", O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-    // char buf[100];
-    // fprintf(fd, "\n ========= BEGIN MAPPING ========= \n");
-    // sprintf(buf, "/proc/%d/maps", getpid());
-    // FILE * mapfd = fopen(buf, "r");
-    // do {
-    //     fgets(buf, 100, mapfd);
-    //     fputs(buf, fd);
-    // } while (!feof(mapfd));
-    // fclose(mapfd);
-    // fprintf(fd, "\n ========== END MAPPING ========== \n");
-    
-    // Merge recorded insn from other CPUs into the set for CPU 0
-    for (size_t i = 1; i < insn_table.size(); ++i) {
-        insn_table[0].insert(insn_table[i].begin(), insn_table[i].end());
-    }
-    
+    int fd = open(output_file, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     // Write to capnp binary output
     ::capnp::MallocMessageBuilder message;
     AnalysisRst::Builder analysis_rst = message.initRoot<AnalysisRst>();
@@ -226,12 +244,91 @@ static void plugin_exit(qemu_plugin_id_t id, void *p)
     writeMessageToFd(fd, message);
     
     close(fd);
+}
+
+// Output base address
+static int64_t input_version_1(const char * output_file, string & digest) {
+    int fd = open(output_file, O_RDONLY);
     
-    // cerr << "Executable Memory Regions" << endl;
-    // for (const mapping_t & mapping : mapping_table)
-    // {
-    //     cerr << get<0>(mapping) << " -> " << get<1>(mapping) << " : " << *get<3>(mapping) << "@" << get<2>(mapping) << endl;
-    // }
+    ::capnp::StreamFdMessageReader message(fd);
+    CaptureResult::Reader result = message.getRoot<CaptureResult>();
+    
+    string outputDigest(result.getDigest().cStr());
+    if (outputDigest != digest) {
+        logger << "Digest mismatch, probably due to a recompilation of the file" << endl;
+        logger << "Original output digest: " << outputDigest << endl;
+        logger << "Original output will be disposed" << endl;
+        return -1;
+    } else {
+        logger << "Original output digest match" << endl;
+        // Load original offsets into current insn_table (i.e. merge them)
+        for (Instruction::Reader insn : result.getInstructions()) {
+            insn_table[0].emplace(insn.getOffset(), insn.getLength());
+        }
+        return result.getBaseAddress();
+    }
+}
+
+static void output_version_1(const char * output_file, uint64_t base_address, string & digest)
+{
+    // Create output file, with 644 permission
+    int fd = open(output_file, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    // Write to capnp binary output
+    ::capnp::MallocMessageBuilder message;
+    CaptureResult::Builder result = message.initRoot<CaptureResult>();
+    result.setDigest(digest.c_str());
+    result.setBaseAddress(base_address);
+    
+    ::capnp::List<Instruction>::Builder instructions = result.initInstructions(insn_table[0].size());
+    
+    size_t i = 0;
+    for (const insn_t & insn : insn_table[0]) {
+        instructions[i].setOffset(insn.first);
+        instructions[i].setLength(insn.second);
+        ++i;
+    }
+    
+    writeMessageToFd(fd, message);
+    
+    close(fd);
+}
+
+static void plugin_exit(qemu_plugin_id_t id, void *p)
+{
+    // Merge recorded insn from other CPUs into the set for CPU 0
+    for (size_t i = 1; i < insn_table.size(); ++i) {
+        insn_table[0].insert(insn_table[i].begin(), insn_table[i].end());
+    }
+    
+    // Save file is base name + .capnp.out
+	string output(strrchr(target_filename->c_str(), '/') + 1);
+	output += ".capnp.out";
+	logger << "Saving output to " << output << endl;
+    
+    int64_t base_address = -1;
+    if (output_version == 0) {
+        base_address = parse_base_address();
+        output_version_0(output.c_str(), base_address);
+    } else {
+        // Calculate executable digest
+        string digest;
+        string command("md5sum -b ");
+        command += target_filename->c_str();
+        istringstream exec_out(exec(command.c_str()));
+        exec_out >> digest;
+        logger << "Executable MD5 digest: " << digest << endl;
+        
+        if (file_exists(output.c_str())) {
+            logger << "Output exists. Loading it." << endl;
+            base_address = input_version_1(output.c_str(), digest);
+        }
+        if (base_address == -1) {
+            base_address = parse_base_address();
+        }
+        output_version_1(output.c_str(), base_address, digest);
+    }
+    
+    logger.close();
 }
 
 /**
@@ -247,16 +344,29 @@ QEMU_PLUGIN_EXPORT int qemu_plugin_install(qemu_plugin_id_t id,
      */
     insn_table.resize(thread::hardware_concurrency());
     
-    if (argc != 1) {
-        cerr << "Expect 1 argument 'binary=<binary_file_location>'\n";
+    if (argc == 0) {
+        cerr << "Expect at least 1 argument 'binary=<binary_file_location>'\n";
         return -1;
     }
     
+    logger.open("capnp-capture.log", ios::out | ios::app);
+    
+    // argv[0]: binary=<binary_file>
+    // argv[1]: version=0 (default, backward compatible with gt generator)
+    //                  1 (new, stores file md5 information, etc.)
+    // argv[2]: mode=0 (default, output capnp-serialized instruction offset table)
+    //               1 (output .txt format of human-readable disassembly result)
+    //               2 (output qemu translation block addresses (not just those instructions being actually translated)
     char * filename = strchr(argv[0], '=') + 1;
     // DEBUG
-    cerr << "Tracing " << filename << "\n";
+    logger << "Tracing " << filename << endl;
     auto [it, n] = filename_table.emplace(filename);
     target_filename = &*it;
+    
+    if (argc > 1) {
+        output_version = atoi(strchr(argv[1], '=') + 1);
+    }
+    logger << "Output Version " << output_version << endl;
 
     /* Register translation block and exit callbacks */
     qemu_plugin_register_vcpu_tb_trans_cb(id, vcpu_tb_trans);

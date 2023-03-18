@@ -25,6 +25,9 @@ CFLAGS += $(if $(CONFIG_DEBUG_TCG), -ggdb -O0)
 
 all: $(SONAMES)
 
+fp-analyzer: fp-analyzer.cpp
+	$(CXX) --std=c++17 -O0 -g $^ -lsqlite3 -lcapnp -lkj -o $@
+
 schema.capnp.o: schema.capnp.c++
 	$(CXX) $(CFLAGS) --std=c++17 -c -O0 -g -o $@ $<
 

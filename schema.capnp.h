@@ -17,6 +17,8 @@ namespace schemas {
 CAPNP_DECLARE_SCHEMA(9f23763eb109ffdc);
 CAPNP_DECLARE_SCHEMA(c72aca35097eecb1);
 CAPNP_DECLARE_SCHEMA(bba3380e8da6875b);
+CAPNP_DECLARE_SCHEMA(f9b8b2d9d394bc3a);
+CAPNP_DECLARE_SCHEMA(91a4dd43c2a19114);
 
 }  // namespace schemas
 }  // namespace capnp
@@ -61,6 +63,36 @@ struct FuncStart {
 
   struct _capnpPrivate {
     CAPNP_DECLARE_STRUCT_HEADER(bba3380e8da6875b, 0, 1)
+    #if !CAPNP_LITE
+    static constexpr ::capnp::_::RawBrandedSchema const* brand() { return &schema->defaultBrand; }
+    #endif  // !CAPNP_LITE
+  };
+};
+
+struct CaptureResult {
+  CaptureResult() = delete;
+
+  class Reader;
+  class Builder;
+  class Pipeline;
+
+  struct _capnpPrivate {
+    CAPNP_DECLARE_STRUCT_HEADER(f9b8b2d9d394bc3a, 1, 2)
+    #if !CAPNP_LITE
+    static constexpr ::capnp::_::RawBrandedSchema const* brand() { return &schema->defaultBrand; }
+    #endif  // !CAPNP_LITE
+  };
+};
+
+struct Instruction {
+  Instruction() = delete;
+
+  class Reader;
+  class Builder;
+  class Pipeline;
+
+  struct _capnpPrivate {
+    CAPNP_DECLARE_STRUCT_HEADER(91a4dd43c2a19114, 2, 0)
     #if !CAPNP_LITE
     static constexpr ::capnp::_::RawBrandedSchema const* brand() { return &schema->defaultBrand; }
     #endif  // !CAPNP_LITE
@@ -326,6 +358,183 @@ private:
 };
 #endif  // !CAPNP_LITE
 
+class CaptureResult::Reader {
+public:
+  typedef CaptureResult Reads;
+
+  Reader() = default;
+  inline explicit Reader(::capnp::_::StructReader base): _reader(base) {}
+
+  inline ::capnp::MessageSize totalSize() const {
+    return _reader.totalSize().asPublic();
+  }
+
+#if !CAPNP_LITE
+  inline ::kj::StringTree toString() const {
+    return ::capnp::_::structString(_reader, *_capnpPrivate::brand());
+  }
+#endif  // !CAPNP_LITE
+
+  inline bool hasDigest() const;
+  inline  ::capnp::Text::Reader getDigest() const;
+
+  inline  ::int64_t getBaseAddress() const;
+
+  inline bool hasInstructions() const;
+  inline  ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>::Reader getInstructions() const;
+
+private:
+  ::capnp::_::StructReader _reader;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::_::PointerHelpers;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::List;
+  friend class ::capnp::MessageBuilder;
+  friend class ::capnp::Orphanage;
+};
+
+class CaptureResult::Builder {
+public:
+  typedef CaptureResult Builds;
+
+  Builder() = delete;  // Deleted to discourage incorrect usage.
+                       // You can explicitly initialize to nullptr instead.
+  inline Builder(decltype(nullptr)) {}
+  inline explicit Builder(::capnp::_::StructBuilder base): _builder(base) {}
+  inline operator Reader() const { return Reader(_builder.asReader()); }
+  inline Reader asReader() const { return *this; }
+
+  inline ::capnp::MessageSize totalSize() const { return asReader().totalSize(); }
+#if !CAPNP_LITE
+  inline ::kj::StringTree toString() const { return asReader().toString(); }
+#endif  // !CAPNP_LITE
+
+  inline bool hasDigest();
+  inline  ::capnp::Text::Builder getDigest();
+  inline void setDigest( ::capnp::Text::Reader value);
+  inline  ::capnp::Text::Builder initDigest(unsigned int size);
+  inline void adoptDigest(::capnp::Orphan< ::capnp::Text>&& value);
+  inline ::capnp::Orphan< ::capnp::Text> disownDigest();
+
+  inline  ::int64_t getBaseAddress();
+  inline void setBaseAddress( ::int64_t value);
+
+  inline bool hasInstructions();
+  inline  ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>::Builder getInstructions();
+  inline void setInstructions( ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>::Reader value);
+  inline  ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>::Builder initInstructions(unsigned int size);
+  inline void adoptInstructions(::capnp::Orphan< ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>>&& value);
+  inline ::capnp::Orphan< ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>> disownInstructions();
+
+private:
+  ::capnp::_::StructBuilder _builder;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+  friend class ::capnp::Orphanage;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::_::PointerHelpers;
+};
+
+#if !CAPNP_LITE
+class CaptureResult::Pipeline {
+public:
+  typedef CaptureResult Pipelines;
+
+  inline Pipeline(decltype(nullptr)): _typeless(nullptr) {}
+  inline explicit Pipeline(::capnp::AnyPointer::Pipeline&& typeless)
+      : _typeless(kj::mv(typeless)) {}
+
+private:
+  ::capnp::AnyPointer::Pipeline _typeless;
+  friend class ::capnp::PipelineHook;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+};
+#endif  // !CAPNP_LITE
+
+class Instruction::Reader {
+public:
+  typedef Instruction Reads;
+
+  Reader() = default;
+  inline explicit Reader(::capnp::_::StructReader base): _reader(base) {}
+
+  inline ::capnp::MessageSize totalSize() const {
+    return _reader.totalSize().asPublic();
+  }
+
+#if !CAPNP_LITE
+  inline ::kj::StringTree toString() const {
+    return ::capnp::_::structString(_reader, *_capnpPrivate::brand());
+  }
+#endif  // !CAPNP_LITE
+
+  inline  ::int64_t getOffset() const;
+
+  inline  ::int8_t getLength() const;
+
+private:
+  ::capnp::_::StructReader _reader;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::_::PointerHelpers;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::List;
+  friend class ::capnp::MessageBuilder;
+  friend class ::capnp::Orphanage;
+};
+
+class Instruction::Builder {
+public:
+  typedef Instruction Builds;
+
+  Builder() = delete;  // Deleted to discourage incorrect usage.
+                       // You can explicitly initialize to nullptr instead.
+  inline Builder(decltype(nullptr)) {}
+  inline explicit Builder(::capnp::_::StructBuilder base): _builder(base) {}
+  inline operator Reader() const { return Reader(_builder.asReader()); }
+  inline Reader asReader() const { return *this; }
+
+  inline ::capnp::MessageSize totalSize() const { return asReader().totalSize(); }
+#if !CAPNP_LITE
+  inline ::kj::StringTree toString() const { return asReader().toString(); }
+#endif  // !CAPNP_LITE
+
+  inline  ::int64_t getOffset();
+  inline void setOffset( ::int64_t value);
+
+  inline  ::int8_t getLength();
+  inline void setLength( ::int8_t value);
+
+private:
+  ::capnp::_::StructBuilder _builder;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+  friend class ::capnp::Orphanage;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::_::PointerHelpers;
+};
+
+#if !CAPNP_LITE
+class Instruction::Pipeline {
+public:
+  typedef Instruction Pipelines;
+
+  inline Pipeline(decltype(nullptr)): _typeless(nullptr) {}
+  inline explicit Pipeline(::capnp::AnyPointer::Pipeline&& typeless)
+      : _typeless(kj::mv(typeless)) {}
+
+private:
+  ::capnp::AnyPointer::Pipeline _typeless;
+  friend class ::capnp::PipelineHook;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+};
+#endif  // !CAPNP_LITE
+
 // =======================================================================================
 
 inline bool AnalysisRst::Reader::hasInstOffsets() const {
@@ -480,6 +689,116 @@ inline void FuncStart::Builder::adoptFunc(
 inline ::capnp::Orphan< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>> FuncStart::Builder::disownFunc() {
   return ::capnp::_::PointerHelpers< ::capnp::List< ::int64_t,  ::capnp::Kind::PRIMITIVE>>::disown(_builder.getPointerField(
       ::capnp::bounded<0>() * ::capnp::POINTERS));
+}
+
+inline bool CaptureResult::Reader::hasDigest() const {
+  return !_reader.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS).isNull();
+}
+inline bool CaptureResult::Builder::hasDigest() {
+  return !_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS).isNull();
+}
+inline  ::capnp::Text::Reader CaptureResult::Reader::getDigest() const {
+  return ::capnp::_::PointerHelpers< ::capnp::Text>::get(_reader.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS));
+}
+inline  ::capnp::Text::Builder CaptureResult::Builder::getDigest() {
+  return ::capnp::_::PointerHelpers< ::capnp::Text>::get(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS));
+}
+inline void CaptureResult::Builder::setDigest( ::capnp::Text::Reader value) {
+  ::capnp::_::PointerHelpers< ::capnp::Text>::set(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS), value);
+}
+inline  ::capnp::Text::Builder CaptureResult::Builder::initDigest(unsigned int size) {
+  return ::capnp::_::PointerHelpers< ::capnp::Text>::init(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS), size);
+}
+inline void CaptureResult::Builder::adoptDigest(
+    ::capnp::Orphan< ::capnp::Text>&& value) {
+  ::capnp::_::PointerHelpers< ::capnp::Text>::adopt(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS), kj::mv(value));
+}
+inline ::capnp::Orphan< ::capnp::Text> CaptureResult::Builder::disownDigest() {
+  return ::capnp::_::PointerHelpers< ::capnp::Text>::disown(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS));
+}
+
+inline  ::int64_t CaptureResult::Reader::getBaseAddress() const {
+  return _reader.getDataField< ::int64_t>(
+      ::capnp::bounded<0>() * ::capnp::ELEMENTS);
+}
+
+inline  ::int64_t CaptureResult::Builder::getBaseAddress() {
+  return _builder.getDataField< ::int64_t>(
+      ::capnp::bounded<0>() * ::capnp::ELEMENTS);
+}
+inline void CaptureResult::Builder::setBaseAddress( ::int64_t value) {
+  _builder.setDataField< ::int64_t>(
+      ::capnp::bounded<0>() * ::capnp::ELEMENTS, value);
+}
+
+inline bool CaptureResult::Reader::hasInstructions() const {
+  return !_reader.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS).isNull();
+}
+inline bool CaptureResult::Builder::hasInstructions() {
+  return !_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS).isNull();
+}
+inline  ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>::Reader CaptureResult::Reader::getInstructions() const {
+  return ::capnp::_::PointerHelpers< ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>>::get(_reader.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS));
+}
+inline  ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>::Builder CaptureResult::Builder::getInstructions() {
+  return ::capnp::_::PointerHelpers< ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>>::get(_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS));
+}
+inline void CaptureResult::Builder::setInstructions( ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>::Reader value) {
+  ::capnp::_::PointerHelpers< ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>>::set(_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS), value);
+}
+inline  ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>::Builder CaptureResult::Builder::initInstructions(unsigned int size) {
+  return ::capnp::_::PointerHelpers< ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>>::init(_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS), size);
+}
+inline void CaptureResult::Builder::adoptInstructions(
+    ::capnp::Orphan< ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>>&& value) {
+  ::capnp::_::PointerHelpers< ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>>::adopt(_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS), kj::mv(value));
+}
+inline ::capnp::Orphan< ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>> CaptureResult::Builder::disownInstructions() {
+  return ::capnp::_::PointerHelpers< ::capnp::List< ::Instruction,  ::capnp::Kind::STRUCT>>::disown(_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS));
+}
+
+inline  ::int64_t Instruction::Reader::getOffset() const {
+  return _reader.getDataField< ::int64_t>(
+      ::capnp::bounded<0>() * ::capnp::ELEMENTS);
+}
+
+inline  ::int64_t Instruction::Builder::getOffset() {
+  return _builder.getDataField< ::int64_t>(
+      ::capnp::bounded<0>() * ::capnp::ELEMENTS);
+}
+inline void Instruction::Builder::setOffset( ::int64_t value) {
+  _builder.setDataField< ::int64_t>(
+      ::capnp::bounded<0>() * ::capnp::ELEMENTS, value);
+}
+
+inline  ::int8_t Instruction::Reader::getLength() const {
+  return _reader.getDataField< ::int8_t>(
+      ::capnp::bounded<8>() * ::capnp::ELEMENTS);
+}
+
+inline  ::int8_t Instruction::Builder::getLength() {
+  return _builder.getDataField< ::int8_t>(
+      ::capnp::bounded<8>() * ::capnp::ELEMENTS);
+}
+inline void Instruction::Builder::setLength( ::int8_t value) {
+  _builder.setDataField< ::int8_t>(
+      ::capnp::bounded<8>() * ::capnp::ELEMENTS, value);
 }
 
 
