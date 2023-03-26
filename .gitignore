@@ -3,3 +3,6 @@
 *.so
 *.o
 *.log
+fp-analyzer
+print
+evaluator

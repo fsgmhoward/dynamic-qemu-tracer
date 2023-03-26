@@ -228,7 +228,7 @@ static int64_t parse_base_address()
 static void output_version_0(set<insn_t> & instructions, const char * output_file, uint64_t base_address)
 {
     // Create output file, with 644 permission
-    int fd = open(output_file, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    int fd = open(output_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     // Write to capnp binary output
     ::capnp::MallocMessageBuilder message;
     AnalysisRst::Builder analysis_rst = message.initRoot<AnalysisRst>();
@@ -273,7 +273,7 @@ static int64_t input_version_1(set<insn_t> & instructions, const char * output_f
 static void output_version_1(set<insn_t> & instructions, const char * output_file, uint64_t base_address, string & digest)
 {
     // Create output file, with 644 permission
-    int fd = open(output_file, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    int fd = open(output_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     // Write to capnp binary output
     ::capnp::MallocMessageBuilder message;
     CaptureResult::Builder result = message.initRoot<CaptureResult>();

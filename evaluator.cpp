@@ -2,67 +2,38 @@
  * This program evaluates the static disassembly result against dynamic disassembly (traced) result
  * By default, static disassembly uses version 0 output and dynamic one uses version 1 output
  */
- 
-#include "schema.capnp.h"
-#include <capnp/message.h>
-#include <capnp/serialize.h>
-#include <bits/stdc++.h>
-#include <fcntl.h>
+// Example: ./evaluator ~/Desktop/TestOutput/dynamic/cpugcc_r_base.mytest-m64.orig.capnp.out ~/Desktop/TestOutput/static/stripall/ghidra/cpugcc_r_base.mytest-m64.orig_ghidra.out
+
+#define _DEBUG_
+
+#include "schema_reader.hpp"
 
 using namespace std;
 
 int main(int argc, char ** argv) {
     if (argc < 3) {
-        cout << "Usage: ./fp-analyzer <dynamic.bin> <static.bin>" << endl;
+        cout << "Usage: ./evaluator <dynamic.bin> <static.bin>" << endl;
         exit(-1);
     }
     
     // Read dynamic trace result from capnp database
-    cout << "Reading dynamic disassembly result from: " << argv[1] << endl;
-    int fd = open(argv[1], O_RDONLY);
-    
-    if (fd == -1) {
-        perror("Error in opening capnp binary for dynamic disassembly");
-        exit(-1);
-    }
-    
-    ::capnp::StreamFdMessageReader dynamic_message(fd);
-    CaptureResult::Reader dynamic_result = dynamic_message.getRoot<CaptureResult>();
-    
-    const char * digest = dynamic_result.getDigest().cStr();
-    int64_t base_address = dynamic_result.getBaseAddress();
-    
     map<int64_t, int8_t> dynamic_offsets;
+    int64_t base_address;
+    string digest;
     
-    for (const auto & insn : dynamic_result.getInstructions()) {
-        dynamic_offsets[insn.getOffset() + base_address] = insn.getLength();
-    }
+    read_version_1(argv[1], dynamic_offsets, base_address, digest);
+    
     cout << "Binary digest = " << digest << endl;
     cout << "Base address = 0x" << hex << base_address << dec << endl;
     cout << "Finished reading. Total #records = " << dynamic_offsets.size() << endl;
     
-    close(fd);
-    
     // Read static disassembly result from capnp database
     cout << "Reading static disassembly result from: " << argv[2] << endl;
-    fd = open(argv[2], O_RDONLY);
-    
-    if (fd == -1) {
-        perror("Error in opening capnp binary for static disassembly");
-        exit(-1);
-    }
-    ::capnp::StreamFdMessageReader static_message(fd);
-    AnalysisRst::Reader static_result = static_message.getRoot<AnalysisRst>();
-    
-    InstOffset::Reader inst_offset = static_result.getInstOffsets();
     
     set<int64_t> static_offsets;
-    for (int64_t offset : inst_offset.getOffset()) {
-        static_offsets.insert(offset);
-    }
-    cout << "Finished reading. Total #records = " << static_offsets.size() << endl;
+    read_version_0(argv[2], static_offsets);
     
-    close(fd);
+    cout << "Finished reading. Total #records = " << static_offsets.size() << endl;
     
     // Evaluation phase
     int64_t tp = 0, fp_confirm = 0, fp_other = 0, fn = 0;

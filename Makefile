@@ -25,11 +25,14 @@ CFLAGS += $(if $(CONFIG_DEBUG_TCG), -ggdb -O0)
 
 all: $(SONAMES)
 
-fp-analyzer: fp-analyzer.cpp
-	$(CXX) --std=c++17 -O0 -g $^ -lsqlite3 -lcapnp -lkj -o $@
+print: print.cpp schema_reader.cpp
+	$(CXX) --std=c++17 -flto -O0 -g $^ -lcapnp -lkj -lZydis -o $@
 
-evaluator: evaluator.cpp
-	$(CXX) --std=c++17 -O0 -g $^ -lcapnp -lkj -o $@
+fp-analyzer: fp-analyzer.cpp
+	$(CXX) --std=c++17 -flto -O0 -g $^ -lsqlite3 -lcapnp -lkj -o $@
+
+evaluator: evaluator.cpp schema_reader.cpp
+	$(CXX) --std=c++17 -flto -O0 -g $^ -lcapnp -lkj -o $@
 
 schema.capnp.o: schema.capnp.c++
 	$(CXX) $(CFLAGS) --std=c++17 -c -O3 -g -o $@ $<
@@ -46,5 +49,6 @@ lib%.so: %.o schema.capnp.o elf-parser.o
 clean:
 	rm -f *.o *.so *.d
 	rm -Rf .libs
+	rm -rf evaluator fp-analyzer print
 
 .PHONY: all clean
