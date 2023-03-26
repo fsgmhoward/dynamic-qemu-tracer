@@ -28,17 +28,20 @@ all: $(SONAMES)
 fp-analyzer: fp-analyzer.cpp
 	$(CXX) --std=c++17 -O0 -g $^ -lsqlite3 -lcapnp -lkj -o $@
 
+evaluator: evaluator.cpp
+	$(CXX) --std=c++17 -O0 -g $^ -lcapnp -lkj -o $@
+
 schema.capnp.o: schema.capnp.c++
-	$(CXX) $(CFLAGS) --std=c++17 -c -O0 -g -o $@ $<
+	$(CXX) $(CFLAGS) --std=c++17 -c -O3 -g -o $@ $<
 
 %.o: %.cpp
-	$(CXX) $(CFLAGS) --std=c++17 -c -O0 -g -o $@ $<
+	$(CXX) $(CFLAGS) --std=c++17 -c -O3 -g -o $@ $<
 	
 %.o: %.c
-	$(CC) $(CFLAGS) -c -O0 -g -o $@ $<
+	$(CC) $(CFLAGS) -c -O3 -g -o $@ $<
 
 lib%.so: %.o schema.capnp.o elf-parser.o
-	$(CXX) -shared -Wl,-soname,$@ -o $@ $^ $(LDLIBS) -lcapnp -lkj
+	$(CXX) -flto -shared -Wl,-soname,$@ -o $@ $^ $(LDLIBS) -lcapnp -lkj
 
 clean:
 	rm -f *.o *.so *.d

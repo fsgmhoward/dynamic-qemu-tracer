@@ -12,28 +12,20 @@ extern "C" {
 
 using namespace std;
 
-// struct insn_t {
-//     const string * filename;
-//     uint64_t offset;
-//     uint8_t length;
-//     
-//     insn_t(const string * f, uint64_t o, uint8_t l) : filename(f), offset(o), length(l) {}
-// };
 typedef pair<uint64_t, uint8_t> insn_t;
 
 QEMU_PLUGIN_EXPORT int qemu_plugin_version = QEMU_PLUGIN_VERSION;
 
 // Table of instructions, represented as insn_t as its size is unknown
 // It will be converted to capnp format before exit
-vector<set<insn_t>> insn_table;
+unordered_map<int64_t, int8_t> insn_discovered;
+vector<unordered_set<int64_t>> insn_executed;
 
 // Memory mapping - begin, end, file offset, file name
 unordered_set<string> filename_table;
 typedef tuple<uint64_t, uint64_t, uint64_t, const string *> mapping_t;
 set<mapping_t> mapping_table;
-
-// Pointers to be freed
-vector<tuple<const string *, uint64_t, uint8_t>*> free_table;
+bool has_mapped = false;
 
 const string * target_filename = nullptr;
 int output_version = 0;
@@ -62,6 +54,7 @@ string exec(const char* cmd) {
 
 // We *NOT ONLY* care about segments with x permission
 // Note that original file is mapped with non-executable permission
+// Also to ignore all files that does not match the filename
 static void update_mapping()
 {
     char buffer[512];
@@ -81,7 +74,12 @@ static void update_mapping()
         if (inode != 0) {
             line >> filename;
         } else {
-            filename = "[runtime]";
+            continue;
+        }
+        
+        const string * filename_ptr = &(*filename_table.insert(filename).first);
+        if (filename_ptr != target_filename) {
+            continue;
         }
         
         // convert range to integer
@@ -90,21 +88,25 @@ static void update_mapping()
         begin = stoull(buffer, nullptr, 16);
         end = stoull(delim + 1, nullptr, 16);
         
-        const string * filename_ptr = &(*filename_table.insert(filename).first);
         mapping_table.emplace(begin, end, offset, filename_ptr);
     }
+    
+    has_mapped = true;
 }
 
 /*
  * For the sake of efficiency, we assumed that mapping stays unchanged
  * throughout execution.
  *
- * Inputs virtual address, outputs offset & files
+ * Inputs virtual address, outputs offset
  *
  * This should always succeed - it should not enter infinite loop
  */
-static pair<uint64_t, const string *> resolve_mapping(uint64_t vaddr)
+static int64_t resolve_mapping(uint64_t vaddr)
 {
+    if (!has_mapped) {
+        update_mapping();
+    }
     for (const mapping_t & mapping : mapping_table)
     {
         // no suitable range found
@@ -116,19 +118,17 @@ static pair<uint64_t, const string *> resolve_mapping(uint64_t vaddr)
         }
         // now: begin <= vaddr < end
         // vaddr - begin + base
-        uint64_t offset = vaddr - get<0>(mapping) + get<2>(mapping);
-        return make_pair(offset, get<3>(mapping));
+        int64_t offset = vaddr - get<0>(mapping) + get<2>(mapping);
+        return offset;
     }
-    update_mapping();
-    return resolve_mapping(vaddr);
+    
+    return -1;
 }
 
 static void vcpu_insn_exec(unsigned int vcpu_index, void *userdata)
 {
     if (userdata) {
-        tuple<const string *, uint64_t, uint8_t> * insn = (tuple<const string *, uint64_t, uint8_t> *) userdata;
-    
-        insn_table[vcpu_index].emplace(get<1>(*insn), get<2>(*insn));
+        insn_executed[vcpu_index].insert((int64_t) userdata);
     }
 }
 
@@ -150,16 +150,17 @@ static void vcpu_tb_trans(qemu_plugin_id_t id, struct qemu_plugin_tb *tb)
         insn = qemu_plugin_tb_get_insn(tb, i);
         
         uint64_t vaddr = qemu_plugin_insn_vaddr(insn);
-        auto [offset, filename] = resolve_mapping(vaddr);
+        int64_t offset = resolve_mapping(vaddr);
         
-        tuple<const string *, uint64_t, uint8_t> * insn_data = nullptr;
+        // void * aka uint64_t, assuming there is no instruction sitting at address 0
+        void * insn_data = nullptr;
         // Store only instructions that match with the static file
-        if (filename == target_filename) {
+        if (offset != -1) {
             uint8_t length = (uint8_t) qemu_plugin_insn_size(insn);
             
             // filename, offset, length
-            insn_data = new tuple<const string *, uint64_t, uint8_t>(filename, offset, length);
-            free_table.push_back(insn_data);
+            insn_data = (void*) offset;
+            insn_discovered[offset] = length;
         }
         
         /* Register callback on instruction */
@@ -224,7 +225,7 @@ static int64_t parse_base_address()
 	return base_address;
 }
 
-static void output_version_0(const char * output_file, uint64_t base_address)
+static void output_version_0(set<insn_t> & instructions, const char * output_file, uint64_t base_address)
 {
     // Create output file, with 644 permission
     int fd = open(output_file, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -233,10 +234,10 @@ static void output_version_0(const char * output_file, uint64_t base_address)
     AnalysisRst::Builder analysis_rst = message.initRoot<AnalysisRst>();
     
     InstOffset::Builder inst_offsets = analysis_rst.initInstOffsets();
-    ::capnp::List<int64_t>::Builder offsets = inst_offsets.initOffset(insn_table[0].size());
+    ::capnp::List<int64_t>::Builder offsets = inst_offsets.initOffset(instructions.size());
     
     size_t i = 0;
-    for (const insn_t & insn : insn_table[0]) {
+    for (const insn_t & insn : instructions) {
         offsets.set(i, insn.first + base_address);
         ++i;
     }
@@ -247,7 +248,7 @@ static void output_version_0(const char * output_file, uint64_t base_address)
 }
 
 // Output base address
-static int64_t input_version_1(const char * output_file, string & digest) {
+static int64_t input_version_1(set<insn_t> & instructions, const char * output_file, string & digest) {
     int fd = open(output_file, O_RDONLY);
     
     ::capnp::StreamFdMessageReader message(fd);
@@ -263,13 +264,13 @@ static int64_t input_version_1(const char * output_file, string & digest) {
         logger << "Original output digest match" << endl;
         // Load original offsets into current insn_table (i.e. merge them)
         for (Instruction::Reader insn : result.getInstructions()) {
-            insn_table[0].emplace(insn.getOffset(), insn.getLength());
+            instructions.emplace(insn.getOffset(), insn.getLength());
         }
         return result.getBaseAddress();
     }
 }
 
-static void output_version_1(const char * output_file, uint64_t base_address, string & digest)
+static void output_version_1(set<insn_t> & instructions, const char * output_file, uint64_t base_address, string & digest)
 {
     // Create output file, with 644 permission
     int fd = open(output_file, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -279,12 +280,12 @@ static void output_version_1(const char * output_file, uint64_t base_address, st
     result.setDigest(digest.c_str());
     result.setBaseAddress(base_address);
     
-    ::capnp::List<Instruction>::Builder instructions = result.initInstructions(insn_table[0].size());
+    ::capnp::List<Instruction>::Builder output_insns = result.initInstructions(instructions.size());
     
     size_t i = 0;
-    for (const insn_t & insn : insn_table[0]) {
-        instructions[i].setOffset(insn.first);
-        instructions[i].setLength(insn.second);
+    for (const insn_t & insn : instructions) {
+        output_insns[i].setOffset(insn.first);
+        output_insns[i].setLength(insn.second);
         ++i;
     }
     
@@ -295,9 +296,12 @@ static void output_version_1(const char * output_file, uint64_t base_address, st
 
 static void plugin_exit(qemu_plugin_id_t id, void *p)
 {
-    // Merge recorded insn from other CPUs into the set for CPU 0
-    for (size_t i = 1; i < insn_table.size(); ++i) {
-        insn_table[0].insert(insn_table[i].begin(), insn_table[i].end());
+    // Merge recorded insn and sort them accordingly
+    set<insn_t> instructions;
+    for (size_t i = 0; i < insn_executed.size(); ++i) {
+        for (int64_t offset : insn_executed[i]) {
+            instructions.emplace(offset, insn_discovered[offset]);
+        }
     }
     
     // Save file is base name + .capnp.out
@@ -308,7 +312,7 @@ static void plugin_exit(qemu_plugin_id_t id, void *p)
     int64_t base_address = -1;
     if (output_version == 0) {
         base_address = parse_base_address();
-        output_version_0(output.c_str(), base_address);
+        output_version_0(instructions, output.c_str(), base_address);
     } else {
         // Calculate executable digest
         string digest;
@@ -320,12 +324,12 @@ static void plugin_exit(qemu_plugin_id_t id, void *p)
         
         if (file_exists(output.c_str())) {
             logger << "Output exists. Loading it." << endl;
-            base_address = input_version_1(output.c_str(), digest);
+            base_address = input_version_1(instructions, output.c_str(), digest);
         }
         if (base_address == -1) {
             base_address = parse_base_address();
         }
-        output_version_1(output.c_str(), base_address, digest);
+        output_version_1(instructions, output.c_str(), base_address, digest);
     }
     
     logger.close();
@@ -342,7 +346,7 @@ QEMU_PLUGIN_EXPORT int qemu_plugin_install(qemu_plugin_id_t id,
      * Initialize dynamic array to cache vCPU instruction. In user mode
      * we don't know the size before emulation.
      */
-    insn_table.resize(thread::hardware_concurrency());
+    insn_executed.resize(thread::hardware_concurrency());
     
     if (argc == 0) {
         cerr << "Expect at least 1 argument 'binary=<binary_file_location>'\n";

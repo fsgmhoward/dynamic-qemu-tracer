@@ -1,0 +1,5 @@
+SCRIPT=$(realpath -s "$0")
+SCRIPTPATH=$(dirname "$SCRIPT")
+BIN=${SCRIPTPATH}/==EXECUTABLE_NAME==.orig
+
+qemu-x86_64 -plugin /home/howard/qemu-tracer/libcapnp-capture.so,binary=$BIN,version=1 -d plugin $BIN $@

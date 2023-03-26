@@ -1,0 +1,3 @@
+#!/bin/bash
+source ~/spec2017/shrc
+specinvoke -f speccmds.cmd

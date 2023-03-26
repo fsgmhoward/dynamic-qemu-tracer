@@ -1,0 +1,11 @@
+#!/bin/sh
+for i in *-m64; do
+    mv $i $i.orig
+    cp wrapper.template $i
+    sed -i "s/==EXECUTABLE_NAME==/$i/g" $i
+    chmod +x $i
+done
+
+echo Input CPU '#'
+read cpu
+sed -i "s/--physcpubind=0/--physcpubind=$cpu/g" speccmds.cmd
