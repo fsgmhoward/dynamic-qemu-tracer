@@ -34,14 +34,11 @@ fp-analyzer: fp-analyzer.cpp
 evaluator: evaluator.cpp schema_io.cpp
 	$(CXX) --std=c++17 -flto -O0 -g $^ -lcapnp -lkj -o $@
 
-schema.capnp.o: schema.capnp.c++
+%.o: %.c++
 	$(CXX) $(CFLAGS) --std=c++17 -c -O3 -g -o $@ $<
 
 %.o: %.cpp
 	$(CXX) $(CFLAGS) --std=c++17 -c -O3 -g -o $@ $<
-	
-%.o: %.c
-	$(CC) $(CFLAGS) -c -O3 -g -o $@ $<
 
 lib%.so: %.o schema.capnp.o elf-parser.o schema_io.o
 	$(CXX) -flto -shared -Wl,-soname,$@ -o $@ $^ $(LDLIBS) -lcapnp -lkj
