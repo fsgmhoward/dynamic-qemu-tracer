@@ -2,7 +2,7 @@
  * This program evaluates the static disassembly result against dynamic disassembly (traced) result
  * By default, static disassembly uses version 0 output and dynamic one uses version 1 output
  */
-// Example: ./evaluator ~/Desktop/TestOutput/dynamic/cpugcc_r_base.mytest-m64.orig.capnp.out ~/Desktop/TestOutput/static/stripall/ghidra/cpugcc_r_base.mytest-m64.orig_ghidra.out
+// Example: ./evaluator ~/Desktop/TestOutput/gcc-11-O3/dynamic/perlbench_r_base.mytest-m64.orig.capnp.out ~/Desktop/TestOutput/gcc-11-O3/static/stripall/ghidra-10.2.3/perlbench_r_base.mytest-m64.orig_ghidra.out fplist.txt fnlist.txt
 
 #define _DEBUG_
 
@@ -12,8 +12,24 @@ using namespace std;
 
 int main(int argc, char ** argv) {
     if (argc < 3) {
-        cout << "Usage: ./evaluator <dynamic.bin> <static.bin>" << endl;
+        cout << "Usage: ./evaluator <dynamic.bin> <static.bin> [fplist.txt] [fnlist.txt]" << endl;
         exit(-1);
+    }
+    
+    bool is_fplist_enabled;
+    bool is_fnlist_enabled = false;
+    ofstream fplist, fnlist;
+    if (is_fplist_enabled = (argc > 3)) {
+        fplist.open(argv[3], ofstream::trunc);
+        fplist << hex;
+        cout << "Confirmed FPs will be written to this file: " << argv[3] << endl;
+        
+        if (is_fnlist_enabled = (argc > 4)) {
+            fnlist.open(argv[4], ofstream::trunc);
+            fnlist << hex;
+            cout << "FNs will be written to this file: " << argv[4] << endl;
+            cout << "Warning: FN list might be VERY long" << endl;
+        }
     }
     
     // Read dynamic trace result from capnp database
@@ -49,6 +65,9 @@ int main(int argc, char ** argv) {
             assert(offset > elem->first);
             if (offset < (elem->first + elem->second)) {
                 ++fp_confirm;
+                if (is_fplist_enabled) {
+                    fplist << "E: " << elem->first << " L: " << elem->second << " A: " << offset << endl;
+                }
             } else {
                 ++fp_other;
             }
@@ -63,24 +82,34 @@ int main(int argc, char ** argv) {
             assert(offset > elem->first);
             if (offset < (elem->first + elem->second)) {
                 ++fp_confirm;
+                if (is_fplist_enabled) {
+                    // Expected offset, expected length, actual offset disassembled
+                    fplist << "E: " << elem->first << " L: " << (int) elem->second << " A: " << offset << endl;
+                }
             } else {
                 ++fp_other;
             }
         }
-        
-        
     }
     
     for (const auto & insn : dynamic_offsets) {
         // actually runned, but disassembler does not give it in its output
         if (static_offsets.find(insn.first) == static_offsets.end()) {
             ++fn;
+            fnlist << insn.first << endl;
         }
     }
     
     cout << "TP: " << tp << endl;
     cout << "FP: " << fp_confirm << " (confirmed), " << fp_other << " (suspected)" << endl;
     cout << "FN: " << fn << endl;
+    
+    if (is_fplist_enabled) {
+        fplist.close();
+        if (is_fnlist_enabled) {
+            fnlist.close();
+        }
+    }
     
     return 0;
 }
