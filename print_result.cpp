@@ -3,7 +3,7 @@
 
 #include <sys/stat.h>
 #include <sys/mman.h>
-#include "schema_reader.hpp"
+#include "schema_io.hpp"
 
 extern "C" {
     #include <Zydis/Zydis.h>
@@ -55,7 +55,7 @@ int main(int argc, char ** argv) {
     of << "# Base address = 0x" << hex << base_address << dec << endl;
     of << "# Finished reading. Total #records = " << dynamic_offsets.size() << endl;
     
-    int64_t max_address = dynamic_offsets.rbegin()->first;
+    int64_t max_address = dynamic_offsets.rbegin()->first + base_address;
     int8_t num_digits = 0;
     while (max_address != 0) {
         max_address /= 16;
@@ -91,7 +91,7 @@ int main(int argc, char ** argv) {
             // Print instruction
             of << instruction.text << endl;
         } else {
-            of << "# Unknown error in disassembly at 0x" << hex << offset << dec << endl;
+            of << "# Unknown error in disassembly at 0x" << hex << runtime_addr << dec << endl;
         }
     }
     

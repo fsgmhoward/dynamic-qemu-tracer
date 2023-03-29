@@ -23,15 +23,15 @@ CFLAGS += -fPIC -Wall $(filter -W%, $(QEMU_CFLAGS))
 CFLAGS += $(if $(findstring no-psabi,$(QEMU_CFLAGS)),-Wpsabi)
 CFLAGS += $(if $(CONFIG_DEBUG_TCG), -ggdb -O0)
 
-all: $(SONAMES)
+all: $(SONAMES) print_result evaluator
 
-print: print.cpp schema_reader.cpp
+print_result: print_result.cpp schema_io.cpp
 	$(CXX) --std=c++17 -flto -O0 -g $^ -lcapnp -lkj -lZydis -o $@
 
 fp-analyzer: fp-analyzer.cpp
 	$(CXX) --std=c++17 -flto -O0 -g $^ -lsqlite3 -lcapnp -lkj -o $@
 
-evaluator: evaluator.cpp schema_reader.cpp
+evaluator: evaluator.cpp schema_io.cpp
 	$(CXX) --std=c++17 -flto -O0 -g $^ -lcapnp -lkj -o $@
 
 schema.capnp.o: schema.capnp.c++
@@ -43,12 +43,15 @@ schema.capnp.o: schema.capnp.c++
 %.o: %.c
 	$(CC) $(CFLAGS) -c -O3 -g -o $@ $<
 
-lib%.so: %.o schema.capnp.o elf-parser.o
+lib%.so: %.o schema.capnp.o elf-parser.o schema_io.o
 	$(CXX) -flto -shared -Wl,-soname,$@ -o $@ $^ $(LDLIBS) -lcapnp -lkj
 
 clean:
 	rm -f *.o *.so *.d
 	rm -Rf .libs
-	rm -rf evaluator fp-analyzer print
+	rm -rf evaluator fp-analyzer print_result
+
+cleanall: clean
+	rm -f *.out *.txt *.log
 
 .PHONY: all clean

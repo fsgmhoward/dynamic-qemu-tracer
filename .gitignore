@@ -4,5 +4,5 @@
 *.o
 *.log
 fp-analyzer
-print
+print_result
 evaluator

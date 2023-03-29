@@ -1,8 +1,4 @@
-#include "schema.capnp.h"
-#include <capnp/message.h>
-#include <capnp/serialize.h>
-#include <bits/stdc++.h>
-#include <fcntl.h>
+#include "schema_io.hpp"
 #include <sys/stat.h>
 
 extern "C" {
@@ -12,12 +8,9 @@ extern "C" {
 
 using namespace std;
 
-typedef pair<uint64_t, uint8_t> insn_t;
-
 QEMU_PLUGIN_EXPORT int qemu_plugin_version = QEMU_PLUGIN_VERSION;
 
-// Table of instructions, represented as insn_t as its size is unknown
-// It will be converted to capnp format before exit
+// Table of instructions, which will be converted to capnp format before exit
 unordered_map<int64_t, int8_t> insn_discovered;
 vector<unordered_set<int64_t>> insn_executed;
 
@@ -225,79 +218,10 @@ static int64_t parse_base_address()
 	return base_address;
 }
 
-static void output_version_0(set<insn_t> & instructions, const char * output_file, uint64_t base_address)
-{
-    // Create output file, with 644 permission
-    int fd = open(output_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-    // Write to capnp binary output
-    ::capnp::MallocMessageBuilder message;
-    AnalysisRst::Builder analysis_rst = message.initRoot<AnalysisRst>();
-    
-    InstOffset::Builder inst_offsets = analysis_rst.initInstOffsets();
-    ::capnp::List<int64_t>::Builder offsets = inst_offsets.initOffset(instructions.size());
-    
-    size_t i = 0;
-    for (const insn_t & insn : instructions) {
-        offsets.set(i, insn.first + base_address);
-        ++i;
-    }
-    
-    writeMessageToFd(fd, message);
-    
-    close(fd);
-}
-
-// Output base address
-static int64_t input_version_1(set<insn_t> & instructions, const char * output_file, string & digest) {
-    int fd = open(output_file, O_RDONLY);
-    
-    ::capnp::StreamFdMessageReader message(fd);
-    CaptureResult::Reader result = message.getRoot<CaptureResult>();
-    
-    string outputDigest(result.getDigest().cStr());
-    if (outputDigest != digest) {
-        logger << "Digest mismatch, probably due to a recompilation of the file" << endl;
-        logger << "Original output digest: " << outputDigest << endl;
-        logger << "Original output will be disposed" << endl;
-        return -1;
-    } else {
-        logger << "Original output digest match" << endl;
-        // Load original offsets into current insn_table (i.e. merge them)
-        for (Instruction::Reader insn : result.getInstructions()) {
-            instructions.emplace(insn.getOffset(), insn.getLength());
-        }
-        return result.getBaseAddress();
-    }
-}
-
-static void output_version_1(set<insn_t> & instructions, const char * output_file, uint64_t base_address, string & digest)
-{
-    // Create output file, with 644 permission
-    int fd = open(output_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-    // Write to capnp binary output
-    ::capnp::MallocMessageBuilder message;
-    CaptureResult::Builder result = message.initRoot<CaptureResult>();
-    result.setDigest(digest.c_str());
-    result.setBaseAddress(base_address);
-    
-    ::capnp::List<Instruction>::Builder output_insns = result.initInstructions(instructions.size());
-    
-    size_t i = 0;
-    for (const insn_t & insn : instructions) {
-        output_insns[i].setOffset(insn.first);
-        output_insns[i].setLength(insn.second);
-        ++i;
-    }
-    
-    writeMessageToFd(fd, message);
-    
-    close(fd);
-}
-
 static void plugin_exit(qemu_plugin_id_t id, void *p)
 {
     // Merge recorded insn and sort them accordingly
-    set<insn_t> instructions;
+    map<int64_t, int8_t> instructions;
     for (size_t i = 0; i < insn_executed.size(); ++i) {
         for (int64_t offset : insn_executed[i]) {
             instructions.emplace(offset, insn_discovered[offset]);
@@ -312,7 +236,9 @@ static void plugin_exit(qemu_plugin_id_t id, void *p)
     int64_t base_address = -1;
     if (output_version == 0) {
         base_address = parse_base_address();
-        output_version_0(instructions, output.c_str(), base_address);
+        if (!write_version_0(output.c_str(), instructions, base_address)) {
+            logger << "Failed to write to output file" << endl;
+        }
     } else {
         // Calculate executable digest
         string digest;
@@ -324,12 +250,28 @@ static void plugin_exit(qemu_plugin_id_t id, void *p)
         
         if (file_exists(output.c_str())) {
             logger << "Output exists. Loading it." << endl;
-            base_address = input_version_1(instructions, output.c_str(), digest);
+            // base_address = input_version_1(instructions, output.c_str(), digest);
+            string original_digest;
+            map<int64_t, int8_t> original_instructions;
+            if (!read_version_1(output.c_str(), original_instructions, base_address, original_digest)) {
+                logger << "Failed to read from input file" << endl;
+                base_address = -1;
+            } else if (original_digest != digest) {
+                logger << "Digest mismatch, probably due to a recompilation of the file" << endl;
+                logger << "Original output digest: " << original_digest << endl;
+                logger << "Original output will be disposed" << endl;
+                base_address = -1;
+            } else {
+                logger << "Original output digest match" << endl;
+                instructions.insert(original_instructions.begin(), original_instructions.end());
+            }
         }
         if (base_address == -1) {
             base_address = parse_base_address();
         }
-        output_version_1(instructions, output.c_str(), base_address, digest);
+        if (!write_version_1(output.c_str(), instructions, base_address, digest)) {
+            logger << "Failed to write to output file" << endl;
+        }
     }
     
     logger.close();

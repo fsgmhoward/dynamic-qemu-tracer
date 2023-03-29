@@ -6,7 +6,7 @@
 
 #define _DEBUG_
 
-#include "schema_reader.hpp"
+#include "schema_io.hpp"
 
 using namespace std;
 
@@ -37,6 +37,7 @@ int main(int argc, char ** argv) {
     int64_t base_address;
     string digest;
     
+    // Note: dynamic_offsets here exclude base_address
     read_version_1(argv[1], dynamic_offsets, base_address, digest);
     
     cout << "Binary digest = " << digest << endl;
@@ -47,6 +48,7 @@ int main(int argc, char ** argv) {
     cout << "Reading static disassembly result from: " << argv[2] << endl;
     
     set<int64_t> static_offsets;
+    // Note: static_offsets here include base_address
     read_version_0(argv[2], static_offsets);
     
     cout << "Finished reading. Total #records = " << static_offsets.size() << endl;
@@ -54,6 +56,8 @@ int main(int argc, char ** argv) {
     // Evaluation phase
     int64_t tp = 0, fp_confirm = 0, fp_other = 0, fn = 0;
     for (int64_t offset : static_offsets) {
+        // Exclude base_address
+        offset -= base_address;
         // *lb is >= offset
         auto lb = dynamic_offsets.lower_bound(offset);
         
@@ -94,7 +98,7 @@ int main(int argc, char ** argv) {
     
     for (const auto & insn : dynamic_offsets) {
         // actually runned, but disassembler does not give it in its output
-        if (static_offsets.find(insn.first) == static_offsets.end()) {
+        if (static_offsets.find(insn.first + base_address) == static_offsets.end()) {
             ++fn;
             fnlist << insn.first << endl;
         }
