@@ -285,10 +285,12 @@ QEMU_PLUGIN_EXPORT int qemu_plugin_install(qemu_plugin_id_t id,
                                            char **argv)
 {
     /*
-     * Initialize dynamic array to cache vCPU instruction. In user mode
-     * we don't know the size before emulation.
+     * Initialize dynamic array to cache vCPU instruction.
+     * This could be huge and is not limited to thread::hardware_concurrency() - QEMU spawns 1 vcpu per
+     * thread, regardless of how many CPUs the host has.
+     * FIXME: Set to 255 as a temporary resolution
      */
-    insn_executed.resize(thread::hardware_concurrency());
+    insn_executed.resize(255);
     
     if (argc == 0) {
         cerr << "Expect at least 1 argument 'binary=<binary_file_location>'\n";

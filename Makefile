@@ -25,6 +25,9 @@ CFLAGS += $(if $(CONFIG_DEBUG_TCG), -ggdb -O0)
 
 all: $(SONAMES) print_result evaluator
 
+objdump_wrapper: objdump_wrapper.cpp schema_io.cpp
+	$(CXX) --std=c++17 -flto -O0 -g $^ -lcapnp -lkj -o $@
+
 print_result: print_result.cpp schema_io.cpp
 	$(CXX) --std=c++17 -flto -O0 -g $^ -lcapnp -lkj -lZydis -o $@
 
