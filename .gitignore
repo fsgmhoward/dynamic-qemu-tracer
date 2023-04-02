@@ -3,6 +3,9 @@
 *.so
 *.o
 *.log
+*.csv
 fp-analyzer
 print_result
 evaluator
+batch_evaluator
+objdump_wrapper

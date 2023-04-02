@@ -80,6 +80,9 @@ int main(int argc, char ** argv) {
             // just nice, a match is found
             ++tp;
             continue;
+        } else if (lb == dynamic_offsets.begin()) {
+            // offset is smaller than any instructions in the set
+            ++fp_other;
         } else {
             // offset is in the middle
             auto elem = prev(lb);
@@ -107,6 +110,9 @@ int main(int argc, char ** argv) {
     cout << "TP: " << tp << endl;
     cout << "FP: " << fp_confirm << " (confirmed), " << fp_other << " (suspected)" << endl;
     cout << "FN: " << fn << endl;
+    
+    // Output one more time for batch reader
+    cout << "BATCH " << tp << " " << fp_confirm << " " << fp_other << " " << fn << endl;
     
     if (is_fplist_enabled) {
         fplist.close();

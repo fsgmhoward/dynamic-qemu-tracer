@@ -23,16 +23,16 @@ CFLAGS += -fPIC -Wall $(filter -W%, $(QEMU_CFLAGS))
 CFLAGS += $(if $(findstring no-psabi,$(QEMU_CFLAGS)),-Wpsabi)
 CFLAGS += $(if $(CONFIG_DEBUG_TCG), -ggdb -O0)
 
-all: $(SONAMES) print_result evaluator
+all: $(SONAMES) print_result evaluator objdump_wrapper batch_evaluator
+
+batch_evaluator: batch_evaluator.cpp
+	$(CXX) --std=c++17 -flto -O0 -g $^ -o $@
 
 objdump_wrapper: objdump_wrapper.cpp schema_io.cpp
 	$(CXX) --std=c++17 -flto -O0 -g $^ -lcapnp -lkj -o $@
 
 print_result: print_result.cpp schema_io.cpp
 	$(CXX) --std=c++17 -flto -O0 -g $^ -lcapnp -lkj -lZydis -o $@
-
-fp-analyzer: fp-analyzer.cpp
-	$(CXX) --std=c++17 -flto -O0 -g $^ -lsqlite3 -lcapnp -lkj -o $@
 
 evaluator: evaluator.cpp schema_io.cpp
 	$(CXX) --std=c++17 -flto -O0 -g $^ -lcapnp -lkj -o $@
@@ -49,7 +49,7 @@ lib%.so: %.o schema.capnp.o elf-parser.o schema_io.o
 clean:
 	rm -f *.o *.so *.d
 	rm -Rf .libs
-	rm -rf evaluator fp-analyzer print_result
+	rm -rf evaluator print_result objdump_wrapper
 
 cleanall: clean
 	rm -f *.out *.txt *.log

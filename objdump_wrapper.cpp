@@ -1,3 +1,5 @@
+#define _DEBUG_
+
 #include "schema_io.hpp"
 
 using namespace std;
