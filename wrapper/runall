@@ -1,13 +1,19 @@
 #!/bin/bash
-if [ "$#" -ne 1 ]; then
+if [ "$#" -lt 1 ]; then
     echo "Invalid number of arguments"
-    echo "./runall <spec2017_dir>"
+    echo "./runall <spec2017_dir> [run_size]"
     exit
 fi
 
 if [ ! -d "$1" ] || [ ! -f "$1/shrc" ]; then
     echo "Invalid spec2017 directory"
     echo "It needs to be the directory with 'shrc' file inside"
+fi
+
+if [ -z "$2" ]; then
+    SIZE="refrate"
+else
+    SIZE="$2"
 fi
 
 CURRENT_PATH=$(pwd)
@@ -27,7 +33,7 @@ PROGRAMS=(
 
 for i in {0..9}; do
     PROGRAM="${PROGRAMS[$i]}"
-    PROGPATH="${1}/benchspec/CPU/${PROGRAM}/run/run_base_refrate_mytest-m64.0000"
+    PROGPATH="${1}/benchspec/CPU/${PROGRAM}/run/run_base_${SIZE}_mytest-m64.0000"
     
     cp run $PROGPATH
     cp setup $PROGPATH
