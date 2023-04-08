@@ -30,19 +30,45 @@ mkdir -p "${OUTBIN_SALL}"
 mkdir -p "${OUTCMD}"
 mkdir -p "${OUTDYN}"
 
+PROGRAMS=(
+  500.perlbench_r
+  502.gcc_r
+  505.mcf_r
+  520.omnetpp_r
+  523.xalancbmk_r
+  525.x264_r
+  531.deepsjeng_r
+  541.leela_r
+  557.xz_r
+)
+
+BINARIES=(
+  perlbench_r_base.mytest-m64.orig
+  cpugcc_r_base.mytest-m64.orig
+  mcf_r_base.mytest-m64.orig
+  omnetpp_r_base.mytest-m64.orig
+  cpuxalan_r_base.mytest-m64.orig
+  x264_r_base.mytest-m64.orig
+  deepsjeng_r_base.mytest-m64.orig
+  leela_r_base.mytest-m64.orig
+  xz_r_base.mytest-m64.orig
+)
+
 DYNAMIC_RESULTS=( $( find $INPATH -name '*.capnp.out' ) )
 
-for dyn in ${DYNAMIC_RESULTS[@]}; do
-    bin=${dyn%.capnp.out}
-    bin_base=$(basename -- "${bin}")
-    dir=$(dirname "${dyn}")
-    cmd="${dir}/speccmds.out"
+for i in {0..8}; do
+    PROGRAM="${PROGRAMS[$i]}"
+    PROGPATH="${INPATH}/${PROGRAM}/run/run_base_refrate_mytest-m64.0000"
     
-    cp "${dyn}" "${OUTDYN}"
-    cp "${cmd}" "${OUTCMD}/${bin_base}.speccmds.out"
-    cp "${bin}" "${OUTBIN}"
-    cp "${bin}" "${OUTBIN_SALL}"
-    cp "${bin}" "${OUTBIN_SDEBUG}"
+    bin="${BINARIES[$i]}"
+    dyn="${bin}.capnp.out"
+    cmd="speccmds.out"
+    
+    cp "${PROGPATH}/${dyn}" "${OUTDYN}"
+    cp "${PROGPATH}/${cmd}" "${OUTCMD}/${bin}.speccmds.out"
+    cp "${PROGPATH}/${bin}" "${OUTBIN}"
+    cp "${PROGPATH}/${bin}" "${OUTBIN_SALL}"
+    cp "${PROGPATH}/${bin}" "${OUTBIN_SDEBUG}"
 done
 
 strip -s "${OUTBIN_SALL}"/*

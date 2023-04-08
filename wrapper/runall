@@ -28,10 +28,9 @@ PROGRAMS=(
   531.deepsjeng_r
   541.leela_r
   557.xz_r
-  999.specrand_ir
 )
 
-for i in {0..9}; do
+for i in {0..8}; do
     PROGRAM="${PROGRAMS[$i]}"
     PROGPATH="${1}/benchspec/CPU/${PROGRAM}/run/run_base_${SIZE}_mytest-m64.0000"
     

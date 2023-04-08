@@ -263,7 +263,12 @@ static void plugin_exit(qemu_plugin_id_t id, void *p)
                 base_address = -1;
             } else {
                 logger << "Original output digest match" << endl;
+                logger << "Merging two sets of instructions:" << endl;
+                logger << "#Insns captured in this run = " << instructions.size() << endl;
+                logger << "#Insns in the old capture file = " << original_instructions.size() << endl;
                 instructions.insert(original_instructions.begin(), original_instructions.end());
+                logger << "Finished merging" << endl;
+                logger << "#Insns after merging two sets = " << instructions.size() << endl;
             }
         }
         if (base_address == -1) {
