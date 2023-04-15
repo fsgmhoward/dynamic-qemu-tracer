@@ -47,7 +47,12 @@ int main(int argc, char ** argv)
         
         cout << "Raw LST output: " << lst_outpath << endl;
         
-        string cmd("objdump -d ");
+        // Create output path recursively
+        string cmd("mkdir -p ");
+        cmd += outpath;
+        exec(cmd.c_str());
+        
+        cmd = "objdump -d -z --insn-width=15 ";
         cmd += string(entry.path()) + " > " + lst_outpath;
         exec(cmd.c_str());
         

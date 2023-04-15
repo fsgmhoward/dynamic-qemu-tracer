@@ -26,7 +26,7 @@ int main(int argc, char ** argv) {
            static_path(argv[2]),
            static_suffix(argv[3]);
     ofstream of(argv[4], ofstream::trunc);
-    of << "binary,tp,fp_c,fp_o,fn" << endl;
+    of << "binary,tp,fp,unk,fn" << endl;
     
     for (auto const & entry : filesystem::directory_iterator(dynamic_path)) {
         if (!entry.is_regular_file()) continue;

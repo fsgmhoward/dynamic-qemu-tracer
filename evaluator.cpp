@@ -12,13 +12,14 @@ using namespace std;
 
 int main(int argc, char ** argv) {
     if (argc < 3) {
-        cout << "Usage: ./evaluator <dynamic.bin> <static.bin> [fplist.txt] [fnlist.txt]" << endl;
+        cout << "Usage: ./evaluator <dynamic.bin> <static.bin> [fplist.txt] [fnlist.txt] [unklist.txt]" << endl;
         exit(-1);
     }
     
     bool is_fplist_enabled;
     bool is_fnlist_enabled = false;
-    ofstream fplist, fnlist;
+    bool is_unklist_enabled = false;
+    ofstream fplist, fnlist, unklist;
     if (is_fplist_enabled = (argc > 3)) {
         fplist.open(argv[3], ofstream::trunc);
         fplist << hex;
@@ -29,6 +30,13 @@ int main(int argc, char ** argv) {
             fnlist << hex;
             cout << "FNs will be written to this file: " << argv[4] << endl;
             cout << "Warning: FN list might be VERY long" << endl;
+            
+            if (is_unklist_enabled = (argc > 5)) {
+                unklist.open(argv[5], ofstream::trunc);
+                unklist << hex;
+                cout << "UNKs will be written to this file: " << argv[5] << endl;
+                cout << "Warning: UNK list might be VERY long" << endl;
+            }
         }
     }
     
@@ -54,7 +62,7 @@ int main(int argc, char ** argv) {
     cout << "Finished reading. Total #records = " << static_offsets.size() << endl;
     
     // Evaluation phase
-    int64_t tp = 0, fp_confirm = 0, fp_other = 0, fn = 0;
+    int64_t tp = 0, fp = 0, unk = 0, fn = 0;
     for (int64_t offset : static_offsets) {
         // Exclude base_address
         offset -= base_address;
@@ -68,12 +76,15 @@ int main(int argc, char ** argv) {
             auto elem = dynamic_offsets.rbegin();
             assert(offset > elem->first);
             if (offset < (elem->first + elem->second)) {
-                ++fp_confirm;
+                ++fp;
                 if (is_fplist_enabled) {
                     fplist << "E: " << elem->first << " L: " << elem->second << " A: " << offset << endl;
                 }
             } else {
-                ++fp_other;
+                ++unk;
+                if (is_unklist_enabled) {
+                    unklist << offset << endl;
+                }
             }
             // need to check this before deref in the next line
         } else if (lb->first == offset) {
@@ -82,19 +93,25 @@ int main(int argc, char ** argv) {
             continue;
         } else if (lb == dynamic_offsets.begin()) {
             // offset is smaller than any instructions in the set
-            ++fp_other;
+            ++unk;
+            if (is_unklist_enabled) {
+                unklist << offset << endl;
+            }
         } else {
             // offset is in the middle
             auto elem = prev(lb);
             assert(offset > elem->first);
             if (offset < (elem->first + elem->second)) {
-                ++fp_confirm;
+                ++fp;
                 if (is_fplist_enabled) {
                     // Expected offset, expected length, actual offset disassembled
                     fplist << "E: " << elem->first << " L: " << (int) elem->second << " A: " << offset << endl;
                 }
             } else {
-                ++fp_other;
+                ++unk;
+                if (is_unklist_enabled) {
+                    unklist << offset << endl;
+                }
             }
         }
     }
@@ -108,16 +125,20 @@ int main(int argc, char ** argv) {
     }
     
     cout << "TP: " << tp << endl;
-    cout << "FP: " << fp_confirm << " (confirmed), " << fp_other << " (suspected)" << endl;
+    cout << "FP: " << fp << endl;
+    cout << "UNK: " << unk << endl;
     cout << "FN: " << fn << endl;
     
     // Output one more time for batch reader
-    cout << "BATCH " << tp << " " << fp_confirm << " " << fp_other << " " << fn << endl;
+    cout << "BATCH " << tp << " " << fp << " " << unk << " " << fn << endl;
     
     if (is_fplist_enabled) {
         fplist.close();
         if (is_fnlist_enabled) {
             fnlist.close();
+            if (is_unklist_enabled) {
+                unklist.close();
+            }
         }
     }
     
